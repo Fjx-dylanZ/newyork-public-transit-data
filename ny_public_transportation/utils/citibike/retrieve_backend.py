@@ -1,13 +1,10 @@
 from ..constants import CITIBIKE_DATASET_URL
 from .scrape_filelist import retrieve_file_urls
 import requests
-from xml.etree import ElementTree
 import re
 import pandas as pd
 import zipfile
-import os
 import io
-import tqdm
 
 def process_filename_df():
     """
