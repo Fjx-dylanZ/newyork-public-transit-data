@@ -1,4 +1,4 @@
-# New York Public Transportation Data Analysis
+# New York Public Transit Data Retrieval/Processing Package
 
 This Python package provides a preliminary set of tools for analyzing public transit data in New York City. It provides easy-to-use functions for fetching, preprocessing, and visualizing data from MTA subway turnstiles and Citi Bike stations.
 
