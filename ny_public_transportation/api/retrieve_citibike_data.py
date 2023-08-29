@@ -55,5 +55,8 @@ def retrieve_citibike_data_as_df(start_date, end_date=None):
 
     # Combine the results
     df = pd.concat(dfs, ignore_index=True)
-
+    df = df.assign(
+            started_at=lambda df: pd.to_datetime(df['started_at'].str.split('.').str[0]), # remove milliseconds
+            ended_at=lambda df: pd.to_datetime(df['ended_at'].str.split('.').str[0]), 
+        )
     return df

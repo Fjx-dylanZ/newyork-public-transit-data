@@ -4,9 +4,11 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import tqdm
 import time
+import warnings
 from .retrieve_mta_data_legacy import retrieve_mta_data_as_df as _retrieve_mta_data_as_df
 from ..utils.constants import APIKeys, MTA_ENDPOINTS
 from ..utils.mta.mta_preprocess import mta_preprocess
+from ..utils.mta.generate_query_condition import generate_where_statement
 
 def retrieve_mta_data_page(args):
     url, headers, params = args
@@ -17,7 +19,7 @@ def retrieve_mta_data_page(args):
     response = requests.get(url, params=params, headers=headers)
 
     _end = time.time()
-    #print(f"Retrieved {params['$offset']} rows in {_end - _start} seconds.")
+    print(f"Fold {params['$offset']} finished in {_end - _start} seconds.")
     if response.status_code == 200:
         data = response.json()
         return data
@@ -44,17 +46,27 @@ def retrieve_mta_data(
     if OPENDATA_API_KEY is None:
         raise ValueError("Open Data API key not set.")
     
-        # TODO: implement standardized query formatter
+    # TODO: implement standardized query formatter
     order = "`date` DESC NULL FIRST, `time` ASC NULL LAST, `c_a` ASC NULL LAST, `unit` ASC NULL LAST"
     offset = 0
     headers = {'X-App-Token': OPENDATA_API_KEY}
-    where = f"`station` = '{station}'" if station else None
+    #where = f"`station` = '{station}'" if station else None
     if date_range:
-        date_range = None
-        raise NotImplementedError("Date range not implemented yet.")
+        # check if date_range is within the year
+        _extract_year = lambda date: pd.to_datetime(date).year
+        start_year, end_year = [_extract_year(date) for date in date_range]
+        if start_year != year or end_year != year:
+            raise ValueError(f"date_range must be within the year {year}.")
+    if station:
+        if not isinstance(station, list):
+            station = [station]
+        station = [s.upper() for s in station]
+    where = generate_where_statement(stations=station, date_range=date_range)
     
     json_data = []
-    if not parallel: return _retrieve_mta_data_as_df(year, limit, query, station, date_range)
+    if not parallel:
+        warnings.warn("Non-parallel version does not support date_range, and only supports one station at a time.")
+        return _retrieve_mta_data_as_df(year, limit, query, station, date_range)
     with ThreadPoolExecutor(max_workers=n_threads) as executor:
         while True:
             futures = []
@@ -82,7 +94,7 @@ def retrieve_mta_data(
 
 def retrieve_mta_data_as_df(
         year,
-        limit=1000000,
+        limit=1500000,
         query=None,
         station=None,
         date_range=None,
@@ -94,14 +106,14 @@ def retrieve_mta_data_as_df(
     :param year: The year(s) of the data to retrieve.
     :param limit: The maximum number of rows to retrieve.
     :param query: A SQL query to filter the data.
-    :param station: The station to retrieve data for.
+    :param station: The station(s) to retrieve data for.
     :param date_range: A tuple of (start_date, end_date) to retrieve data for.
     :return: A pandas DataFrame containing the MTA data.
     """
-    if len(year) == 1: return pd.DataFrame(retrieve_mta_data(year[0], limit, query, station, date_range))
+    if len(year) == 1: return mta_preprocess(pd.DataFrame(retrieve_mta_data(year[0], limit, query, station, date_range, parallel, n_threads)))
     df = pd.concat(
         [pd.DataFrame(
-            retrieve_mta_data(y, limit, query, station, date_range)
+            retrieve_mta_data(y, limit, query, station, date_range, parallel, n_threads)
          ) for y in year]
         )
-    return df
+    return mta_preprocess(df)

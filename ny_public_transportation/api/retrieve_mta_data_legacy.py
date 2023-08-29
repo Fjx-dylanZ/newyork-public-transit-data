@@ -72,5 +72,5 @@ def retrieve_mta_data_as_df(
             retrieve_mta_data(y, limit, query, station, date_range)
          ) for y in year]
         )
-    return df
+    return mta_preprocess(df)
 
