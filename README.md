@@ -15,7 +15,7 @@ This Python package provides a preliminary set of tools for analyzing public tra
 You may clone this repository and import the modules directly into your Python environment. Please note that this package requires Python 3.6 or above.
 
 ```bash
-git clone https://github.com/yourusername/ny_public_transportation.git
+git clone https://github.com/Fjx-dylanZ/newyork-public-transit-data.git
 ```
 
 ## Usage
